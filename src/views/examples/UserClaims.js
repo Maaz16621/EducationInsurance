@@ -95,11 +95,9 @@ const UserClaims = () => {
                             <CardHeader className="bg-white border-0">
                                 <Row className="align-items-center">
                                     <Col xs="8">
-                                        <h3 className="mb-0">Claims</h3>
+                                        <h3 className="mb-0"> User Claims</h3>
                                     </Col>
-                                    <Col className="text-right" xs="4">
-                                        <Button color="primary" onClick={handleAddClaim}>Add Claim</Button>
-                                    </Col>
+                                  
                                 </Row>
                             </CardHeader>
                             <CardBody>
