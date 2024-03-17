@@ -23,6 +23,7 @@ import Kin from "views/examples/Kin.js";
 import Children from "views/examples/Childrens.js";
 import Claim from "views/examples/Claims.js";
 import UserClaims from "./views/examples/UserClaims";
+import Customers from "./views/examples/Customers";
 
 var routes = [
     {
@@ -74,11 +75,19 @@ var routes = [
         icon: "fa fa-file-text text-green",
         component: <Claim />,
         layout: "/admin",
-    },{
+    },
+    {
         path: "/userClaims",
         name: "User Claims",
         icon: "fa fa-file-text text-green",
         component: <UserClaims />,
+        layout: "/admin",
+    },
+    {
+        path: "/customers",
+        name: "Customers",
+        icon: "fa fa-users text-red",
+        component: <Customers />,
         layout: "/admin",
     },
 ];
