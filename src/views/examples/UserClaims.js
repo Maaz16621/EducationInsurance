@@ -190,8 +190,7 @@ const UserClaims = () => {
                                 </Row>
                             </CardHeader>
                             <CardBody>
-                                <div className="table-responsive">
-
+                          <div className="table-responsive">
             <table className="table align-items-center table-flush">
                 <thead className="thead-light">
                     <tr>

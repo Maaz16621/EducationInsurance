@@ -40,17 +40,22 @@ import DemoNavbar from "components/Navbars/DemoNavbar.js";
 const Login = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [role, setRole] = useState("user");
+
     const [alert, setAlert] = useState(null);
     const [loggedIn, setLoggedIn] = useState(false);
     useEffect(() => {
         const isLoggedIn = sessionStorage.getItem('isLoggedIn');
         if (isLoggedIn && !loggedIn) {
             setLoggedIn(true);
-            window.location.href = '/admin';
+            window.location.href = '/userpanel';
         }
     }, [loggedIn]);
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        // Default role to 'user' if not provided
+        const userRole = role ? role : 'user';
 
         fetch('http://localhost/insurance/api/login.php', {
             method: 'POST',
@@ -60,6 +65,7 @@ const Login = () => {
             body: new URLSearchParams({
                 email: email,
                 password: password,
+                role: userRole // Pass the role along with other form data
             }),
         })
             .then(response => response.json())
@@ -68,8 +74,18 @@ const Login = () => {
                     // Login successful, store user data in sessionStorage
                     sessionStorage.setItem('user', JSON.stringify(data.user));
                     sessionStorage.setItem('isLoggedIn', true);
+                    console.log(data.user);
+                    if (role !== "user") {
+                        sessionStorage.setItem('role', data.user.role); // Store the role in sessionStorage
+                    } else {
+
+                    }
+                   
                     // Redirect to the admin page
-                    window.location.href = '/admin';
+                    setTimeout(() => {
+                        window.location.href = '/userpanel';
+                    }, 10000);
+                   
                 } else {
                     // Login failed, show an error message
                     setAlert({ type: 'error', message: data.message });
@@ -154,10 +170,10 @@ const Login = () => {
                         </Button>
                       </div>
                     </CardHeader>
-                    <CardBody className="px-lg-5 py-lg-5">
-                      <div className="text-center text-muted mb-4">
-                        <small>Or sign in with credentials</small>
-                      </div>
+                                    <CardBody className="px-lg-5 py-lg-5">
+                                        <div className="text-center text-muted mb-4">
+                                            <small>Or sign in with credentials</small>
+                                        </div>
                                         <Form role="form" onSubmit={handleSubmit}>
                                             <FormGroup className="mb-3">
                                                 <InputGroup className="input-group-alternative">
@@ -179,6 +195,19 @@ const Login = () => {
                                                     <Input placeholder="Password" type="password" autoComplete="off" value={password} onChange={(e) => setPassword(e.target.value)} />
                                                 </InputGroup>
                                             </FormGroup>
+                                            <FormGroup>
+                                                <InputGroup className="input-group-alternative">
+                                                    <InputGroupAddon addonType="prepend">
+                                                        <InputGroupText>
+                                                            <i className="fa fa-user" />
+                                                        </InputGroupText>
+                                                    </InputGroupAddon>
+                                                    <Input type="select" name="role" value={role} onChange={(e) => setRole(e.target.value)}>
+                                                        <option value="employee">Employee</option>
+                                                        <option value="user">User</option>
+                                                    </Input>
+                                                </InputGroup>
+                                            </FormGroup>
                                             <div className="custom-control custom-control-alternative custom-checkbox">
                                                 <input className="custom-control-input" id="customCheckLogin" type="checkbox" />
                                                 <label className="custom-control-label" htmlFor="customCheckLogin">
@@ -191,8 +220,7 @@ const Login = () => {
                                                 </Button>
                                             </div>
                                         </Form>
-                                      
-                    </CardBody>
+                                    </CardBody>
                   </Card>
                   <Row className="mt-3">
                     <Col xs="6">

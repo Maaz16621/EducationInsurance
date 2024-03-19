@@ -22,7 +22,7 @@ root.render(
             <Route path="/" exact element={<Index />} />
             <Route path="/login-page" exact element={<Login />} />
             <Route path="/register-page" exact element={<Register />} />
-            <Route path="/admin/*" element={<AdminLayout />} />
+            <Route path="/userpanel/*" element={<AdminLayout />} />
             <Route path="/auth/*" element={<AuthLayout />} />
 
             <Route path="*" element={<Navigate to="/" replace />} />

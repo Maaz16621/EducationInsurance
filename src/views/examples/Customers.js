@@ -5,248 +5,100 @@ import {
     Card,
     CardHeader,
     CardBody,
-    FormGroup,
-    Form,
-    Input,
     Table,
     Container,
     Row,
     Col,
     Modal,
     ModalHeader,
-    InputGroup,
-    InputGroupAddon,
-    InputGroupText,
     ModalBody,
     ModalFooter
 } from "reactstrap";
 import UserHeader from "components/Headers/UserHeader";
 
 const Customers = () => {
-    const [childrenData, setChildrenData] = useState(null);
+    const [customerData, setCustomerData] = useState([]);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [viewModalOpen, setViewModalOpen] = useState(false);
     const [alert, setAlert] = useState(null);
-    const [modal, setModal] = useState(false);
-    const [editModal, setEditModal] = useState(false);
-    const [editingChild, setEditingChild] = useState(null);
-    const [formData, setFormData] = useState({
-        name: '',
-        cnic: '',
-        institutionName: '',
-        course: '',
-        class: '',
-        semester: '',
-        year: '',
-        rollNumber: '',
-        feeFrequency: '',
-        feesPerMQY: '',
-        remainingTime: '',
-        totalOutstandingFees: '0' // Initial value set to '0'
-    });
-
 
     useEffect(() => {
-        fetchChildrenData();
+        getAllCustomers();
     }, []);
 
-    const fetchChildrenData = () => {
-        // Fetch children data from the server
-        const user = JSON.parse(sessionStorage.getItem('user'));
-
-        if (user && user.id) {
-            fetch(`http://localhost/insurance/api/childrenDetails.php?userId=${user.id}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    setChildrenData(data);
-                })
-                .catch(error => {
-                    console.error('There was a problem fetching children data:', error);
-                    setAlert({ type: 'error', message: 'Failed to fetch children data' });
-                    setTimeout(() => {
-                        setAlert(null);
-                    }, 5000);
-                });
-        } else {
-            console.error('User ID not found in session storage');
-        }
-    };
-
-    const toggleModal = () => setModal(!modal);
-
-    const handleAddChild = () => {
-        // Prepare data to send to the server
-        const user = JSON.parse(sessionStorage.getItem('user'));
-        const dataToSend = {
-            userId: user.id,
-            ...formData
-        };
-
-        // Send a POST request to the server to insert child details
-        fetch('http://localhost/insurance/api/insertChildDetails.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(dataToSend)
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                // Handle success response
-                console.log('Child details inserted successfully:', data);
-                toggleModal(); // Close the modal after successful insertion
-                fetchChildrenData(); // Refresh the children data
-                setAlert({ type: 'success', message: data.message }); // Show success alert
-                setTimeout(() => {
-                    setAlert(null);
-                }, 5000);
-            })
-            .catch(error => {
-                // Handle error response
-                console.error('There was a problem inserting child details:', error);
-                setAlert({ type: 'error', message: 'Failed to insert child details' }); // Show error alert
-                setTimeout(() => {
-                    setAlert(null);
-                }, 5000);
-            });
-    };
-
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        let updatedFormData = { ...formData, [name]: value };
-
-        if (name === 'feesPerMQY' || name === 'remainingTime') {
-            const feesPerMQY = parseFloat(updatedFormData.feesPerMQY);
-            const remainingTime = parseFloat(updatedFormData.remainingTime);
-            if (!isNaN(feesPerMQY) && !isNaN(remainingTime)) {
-                const totalOutstandingFees = feesPerMQY * remainingTime;
-                updatedFormData = { ...updatedFormData, totalOutstandingFees: totalOutstandingFees.toFixed(2) };
-            }
-        }
-
-        setFormData(updatedFormData);
-    };
-    const handleDeleteChild = async (childId) => {
+    const getAllCustomers = async () => {
         try {
-            const response = await fetch(`http://localhost/insurance/api/deleteChild.php?id=${childId}`, {
-                method: 'GET'
+            const response = await fetch('http://localhost/insurance/api/getAllUsers.php');
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            const data = await response.json();
+            setCustomerData(data);
+        } catch (error) {
+            console.error('Error fetching customers:', error);
+            setAlert({ type: 'error', message: 'Failed to fetch customers' });
+        }
+    };
+
+    const toggleViewModal = () => {
+        setViewModalOpen(!viewModalOpen);
+    };
+
+    const handleViewUser = (user) => {
+        setSelectedUser(user);
+        toggleViewModal();
+    };
+
+    const handleDisableUser = async (userId) => {
+        try {
+            const response = await fetch('http://localhost/insurance/api/disableUser.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ user_id: userId, action: 0 }) // Action 0 represents disable
             });
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
 
             const data = await response.json();
-
-          
-                // If the response is not ok, handle it accordingly
-                if (data && data.message === 'A claim has been submitted for this child. Cannot delete.') {
-                    // Show specific message for the case when a claim has been submitted
-                    setAlert({ type: 'error', message: 'A claim has been submitted for this child. Cannot delete.' });
-            } else if(data && data.message === 'Child record deleted successfully.'){
-                    setAlert({ type: 'success', message: 'Child deleted successfully' });
-                  
-            } else {
-                    // Show generic error message for other cases
-                    setAlert({ type: 'error', message: 'Failed to delete the child' });
-                }
-           
-            setTimeout(() => {
-                setAlert(null);
-            }, 5000);
-                // Refresh children data after deletion
-                fetchChildrenData();
-            
+            setAlert({ type: 'success', message: data.message });
+            getAllCustomers();
         } catch (error) {
-            // Handle other unexpected errors
-            console.error('An unexpected error occurred:', error);
-            setAlert({ type: 'error', message: 'Failed to delete the child' });
-            setTimeout(() => {
-                setAlert(null);
-            }, 5000);
+            console.error('Error disabling user:', error);
+            setAlert({ type: 'danger', message: 'Failed to disable user' });
         }
     };
 
-
-
-    const toggleEditModal = (child) => {
-        setEditModal(!editModal);
-        setEditingChild(child); // Set the ID of the editing child
-        if (child) {
-            setFormData({
-                name: child.name || '',
-                cnic: child.form_b_cnic || '',
-                institutionName: child.institution_name || '',
-                course: child.course || '',
-                class: child.class || '',
-                semester: child.semester || '',
-                year: child.year || '',
-                rollNumber: child.roll_number || '',
-                feeFrequency: child.fee_frequency || '',
-                feesPerMQY: child.fees_per_mqy || '',
-                remainingTime: child.remaining_time_to_completion || '',
-                totalOutstandingFees: child.total_outstanding_fees_prs || '0'
+    const handleActivateUser = async (userId) => {
+        try {
+            const response = await fetch('http://localhost/insurance/api/disableUser.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ user_id: userId, action: 1 }) // Action 1 represents activate
             });
-        } else {
-            // Initialize formData with default values when no child is selected
-            setFormData({
-                name: '',
-                cnic: '',
-                institutionName: '',
-                course: '',
-                class: '',
-                semester: '',
-                year: '',
-                rollNumber: '',
-                feeFrequency: '',
-                feesPerMQY: '',
-                remainingTime: '',
-                totalOutstandingFees: '0'
-            });
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            const data = await response.json();
+            setAlert({ type: 'success', message: data.message });
+            getAllCustomers();
+        } catch (error) {
+            console.error('Error activating user:', error);
+            setAlert({ type: 'danger', message: 'Failed to activate user' });
         }
     };
 
-    const handleUpdateChild = () => {
-        const dataToUpdate = {
-            id: editingChild.id,
-            ...formData
-        };
-
-        fetch('http://localhost/insurance/api/updateChildDetails.php', {
-            method: 'POST', // Assuming you're using POST method in PHP script
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(dataToUpdate)
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('Child details updated successfully:', data);
-                toggleEditModal();
-                fetchChildrenData();
-                setAlert({ type: 'success', message: 'Child details updated successfully' });
-                setTimeout(() => {
-                    setAlert(null);
-                }, 5000);
-            })
-            .catch(error => {
-                console.error('There was a problem updating child details:', error);
-                setAlert({ type: 'error', message: 'Failed to update child details' });
-                setTimeout(() => {
-                    setAlert(null);
-                }, 5000);
-            });
-    };
-
+    // After setting the alert state
+    setTimeout(() => {
+        setAlert(null);
+    }, 5000); // 5000 milliseconds = 5 seconds
 
 
     return (
@@ -259,49 +111,48 @@ const Customers = () => {
 
             <UserHeader />
 
-            <Container className="mt--7 mb-3" fluid>
+            <Container className="mt--7 mb-3" fluid style={{ zIndex: 0 }}>
                 <Row className="justify-content-center">
                     <Col xl="12">
                         <Card className="bg-secondary shadow">
                             <CardHeader className="bg-white border-0">
                                 <Row className="align-items-center">
                                     <Col xs="8">
-                                        <h3 className="mb-0">Children</h3>
-                                    </Col>
-                                    <Col className="text-right" xs="4">
-                                        {(!childrenData || !Array.isArray(childrenData) || childrenData.length < 2) && <Button color="primary" onClick={toggleModal}>Add</Button>}
+                                        <h3 className="mb-0">Customers</h3>
                                     </Col>
                                 </Row>
                             </CardHeader>
                             <CardBody>
                                 <Table className="align-items-center table-flush" responsive>
-                                    <thead className="thead-light">
+                                    <thead>
                                         <tr>
-                                            <th scope="col">Name</th>
-                                            <th scope="col">Form B / CNIC</th>
-                                            <th scope="col">Institution Name</th>
-                                            <th scope="col">Course</th>
-                                            <th scope="col">Class</th>
-                                            <th scope="col">Semester</th>
-                                            <th scope="col">Year</th>
-                                            <th scope="col">Actions</th>
+                                            <th>ID</th>
+                                            <th>Username</th>
+                                            <th>Email</th>
+                                            <th>Active</th>
+                                            <th>Created At</th>
+                                            <th>Updated At</th>
+                                            <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {childrenData && Array.isArray(childrenData) && childrenData.map((child, index) => (
-                                            <tr key={index}>
-                                                <td>{child.name}</td>
-                                                <td>{child.form_b_cnic}</td>
-                                                <td>{child.institution_name}</td>
-                                                <td>{child.course}</td>
-                                                <td>{child.class}</td>
-                                                <td>{child.semester}</td>
-                                                <td>{child.year}</td>
+                                        {customerData.map(user => (
+                                            <tr key={user.id}>
+                                                <td>{user.id}</td>
+                                                <td>{user.username}</td>
+                                                <td>{user.email}</td>
+                                                <td>{user.active ? 'Active' : 'Inactive'}</td>
+                                                <td>{user.createdAt}</td>
+                                                <td>{user.updatedAt}</td>
                                                 <td>
-                                                      <Button color="warning" size="sm" onClick={() => toggleEditModal(child)}>Edit</Button>{' '}
-                                                    <Button color="danger" size="sm" onClick={() => handleDeleteChild(child.id)}>Delete</Button>
+                                                    <Button color="info" size="sm" onClick={() => handleViewUser(user)}>View</Button>{' '}
+                                                    {user.active ?
+                                                        <Button color="danger" size="sm" onClick={() => handleDisableUser(user.id)}>Disable</Button>
+                                                        :
+                                                        <Button color="success" size="sm" onClick={() => handleActivateUser(user.id)}>Activate</Button>
+                                                    }
+
                                                 </td>
-                                              
                                             </tr>
                                         ))}
                                     </tbody>
@@ -311,368 +162,123 @@ const Customers = () => {
                     </Col>
                 </Row>
             </Container>
-            <Modal isOpen={editModal} toggle={toggleEditModal} size="lg">
-                <ModalHeader toggle={toggleEditModal}>Edit Child Details</ModalHeader>
+            <Modal isOpen={viewModalOpen} toggle={toggleViewModal} size="lg">
+                <ModalHeader toggle={toggleViewModal}>View User Details</ModalHeader>
                 <ModalBody>
-                    <Form>
-                        <Row form>
-                            <Col md={6}>
-                                <FormGroup>
-                                    <label htmlFor="edit-input-name" className="form-control-label">Name</label>
-                                    <InputGroup className="input-group-alternative">
-                                        <InputGroupAddon addonType="prepend">
-                                            <InputGroupText>
-                                                <i className="ni ni-single-02" />
-                                            </InputGroupText>
-                                        </InputGroupAddon>
-                                        <Input type="text" id="edit-input-name" name="name" value={formData.name} onChange={handleChange} required />
-                                    </InputGroup>
-                                </FormGroup>
-                            </Col>
-                            <Col md={6}>
-                                <FormGroup>
-                                    <label htmlFor="edit-input-cnic" className="form-control-label">Form B / CNIC</label>
-                                    <InputGroup className="input-group-alternative">
-                                        <InputGroupAddon addonType="prepend">
-                                            <InputGroupText>
-                                                <i className="ni ni-credit-card" />
-                                            </InputGroupText>
-                                        </InputGroupAddon>
-                                        <Input type="number" id="edit-input-cnic" name="cnic" value={formData.cnic} onChange={handleChange} required />
-                                    </InputGroup>
-                                </FormGroup>
-                            </Col>
-                        </Row>
-                        <Row form>
-                            <Col md={6}>
-                                <FormGroup>
-                                    <label htmlFor="edit-input-institution" className="form-control-label">Institution Name</label>
-                                    <InputGroup className="input-group-alternative">
-                                        <InputGroupAddon addonType="prepend">
-                                            <InputGroupText>
-                                                <i className="ni ni-building" />
-                                            </InputGroupText>
-                                        </InputGroupAddon>
-                                        <Input type="text" id="edit-input-institution" name="institutionName" value={formData.institutionName} onChange={handleChange} required />
-                                    </InputGroup>
-                                </FormGroup>
-                            </Col>
-                            <Col md={6}>
-                                <FormGroup>
-                                    <label htmlFor="edit-input-course" className="form-control-label">Course</label>
-                                    <InputGroup className="input-group-alternative">
-                                        <InputGroupAddon addonType="prepend">
-                                            <InputGroupText>
-                                                <i className="ni ni-books" />
-                                            </InputGroupText>
-                                        </InputGroupAddon>
-                                        <Input type="text" id="edit-input-course" name="course" value={formData.course} onChange={handleChange} required />
-                                    </InputGroup>
-                                </FormGroup>
-                            </Col>
-                        </Row>
-                        <Row form>
-                            <Col md={6}>
-                                <FormGroup>
-                                    <label htmlFor="edit-input-class" className="form-control-label">Class</label>
-                                    <InputGroup className="input-group-alternative">
-                                        <InputGroupAddon addonType="prepend">
-                                            <InputGroupText>
-                                                <i className="ni ni-hat-3" />
-                                            </InputGroupText>
-                                        </InputGroupAddon>
-                                        <Input type="text" id="edit-input-class" name="class" value={formData.class} onChange={handleChange} required />
-                                    </InputGroup>
-                                </FormGroup>
-                            </Col>
-                            <Col md={6}>
-                                <FormGroup>
-                                    <label htmlFor="edit-input-semester" className="form-control-label">Semester</label>
-                                    <InputGroup className="input-group-alternative">
-                                        <InputGroupAddon addonType="prepend">
-                                            <InputGroupText>
-                                                <i className="ni ni-calendar-grid-58" />
-                                            </InputGroupText>
-                                        </InputGroupAddon>
-                                        <Input type="text" id="edit-input-semester" name="semester" value={formData.semester} onChange={handleChange} required />
-                                    </InputGroup>
-                                </FormGroup>
-                            </Col>
-                        </Row>
-                        <Row form>
-                            <Col md={6}>
-                                <FormGroup>
-                                    <label htmlFor="edit-input-year" className="form-control-label">Year</label>
-                                    <InputGroup className="input-group-alternative">
-                                        <InputGroupAddon addonType="prepend">
-                                            <InputGroupText>
-                                                <i className="ni ni-calendar-grid-58" />
-                                            </InputGroupText>
-                                        </InputGroupAddon>
-                                        <Input type="number" id="edit-input-year" name="year" value={formData.year} onChange={handleChange} required />
-                                    </InputGroup>
-                                </FormGroup>
-                            </Col>
-                            <Col md={6}>
-                                <FormGroup>
-                                    <label htmlFor="edit-input-rollnumber" className="form-control-label">Roll Number</label>
-                                    <InputGroup className="input-group-alternative">
-                                        <InputGroupAddon addonType="prepend">
-                                            <InputGroupText>
-                                                <i className="ni ni-key-25" />
-                                            </InputGroupText>
-                                        </InputGroupAddon>
-                                        <Input type="text" id="edit-input-rollnumber" name="rollNumber" value={formData.rollNumber} onChange={handleChange} required />
-                                    </InputGroup>
-                                </FormGroup>
-                            </Col>
-                        </Row>
-                        <Row form>
-                            <Col md={6}>
-                                <FormGroup>
-                                    <label htmlFor="edit-input-fee-frequency" className="form-control-label">Fee Frequency</label>
-                                    <InputGroup className="input-group-alternative">
-                                        <InputGroupAddon addonType="prepend">
-                                            <InputGroupText>
-                                                <i className="ni ni-money-coins" />
-                                            </InputGroupText>
-                                        </InputGroupAddon>
-                                        <Input type="text" id="edit-input-fee-frequency" name="feeFrequency" value={formData.feeFrequency} onChange={handleChange} required />
-                                    </InputGroup>
-                                </FormGroup>
-                            </Col>
-                            <Col md={6}>
-                                <FormGroup>
-                                    <label htmlFor="edit-input-fees-per-m-q-y" className="form-control-label">Fees per M/Q/Y</label>
-                                    <InputGroup className="input-group-alternative">
-                                        <InputGroupAddon addonType="prepend">
-                                            <InputGroupText>
-                                                <i className="ni ni-money-coins" />
-                                            </InputGroupText>
-                                        </InputGroupAddon>
-                                        <Input type="number" id="edit-input-fees-per-m-q-y" name="feesPerMQY" value={formData.feesPerMQY} onChange={handleChange} required />
-                                    </InputGroup>
-                                </FormGroup>
-                            </Col>
-                        </Row>
-                        <Row form>
-                            <Col md={6}>
-                                <FormGroup>
-                                    <label htmlFor="edit-input-remaining-time" className="form-control-label">Remaining Time to Completion (yrs)</label>
-                                    <InputGroup className="input-group-alternative">
-                                        <InputGroupAddon addonType="prepend">
-                                            <InputGroupText>
-                                                <i className="ni ni-time-alarm" />
-                                            </InputGroupText>
-                                        </InputGroupAddon>
-                                        <Input type="number" id="edit-input-remaining-time" name="remainingTime" value={formData.remainingTime} onChange={handleChange} required />
-                                    </InputGroup>
-                                </FormGroup>
-                            </Col>
-                            <Col md={6}>
-                                <FormGroup>
-                                    <label htmlFor="edit-input-total-outstanding-fees" className="form-control-label">Total Outstanding Fees in PRS</label>
-                                    <InputGroup className="input-group-alternative">
-                                        <InputGroupAddon addonType="prepend">
-                                            <InputGroupText>
-                                                <i className="ni ni-money-coins" />
-                                            </InputGroupText>
-                                        </InputGroupAddon>
-                                        <Input type="text" id="edit-input-total-outstanding-fees" name="totalOutstandingFees" value={formData.totalOutstandingFees} onChange={handleChange} required readOnly />
-                                    </InputGroup>
-                                </FormGroup>
-                            </Col>
-                        </Row>
-                    </Form>
+                    {selectedUser && (
+                        <div className="table-responsive">
+                            <table className="table">
+                                <tbody><tr>
+                                    <td ><strong>Profile Picture:</strong></td>
+                                    <td >
+                                        {selectedUser.profilePicUrl && (
+                                            <img src={selectedUser.profilePicUrl} alt="Profile Picture" className="img-fluid rounded-circle" style={{ maxWidth: '300px', height: 'auto' }} />
+                                        )}
+                                    </td>
+                                </tr>
+                                    <tr>
+                                        <td><strong>ID:</strong></td>
+                                        <td>{selectedUser.id}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Username:</strong></td>
+                                        <td>{selectedUser.username}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Email:</strong></td>
+                                        <td>{selectedUser.email}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Password:</strong></td>
+                                        <td>{selectedUser.password}</td>
+                                    </tr>
+                                    
+                                    <tr>
+                                        <td><strong>CNIC:</strong></td>
+                                        <td>{selectedUser.cnic}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>First Name:</strong></td>
+                                        <td>{selectedUser.firstName}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Last Name:</strong></td>
+                                        <td>{selectedUser.lastName}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Date of Birth:</strong></td>
+                                        <td>{selectedUser.dob}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Age:</strong></td>
+                                        <td>{selectedUser.age}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Profession:</strong></td>
+                                        <td>{selectedUser.profession}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Employer Name:</strong></td>
+                                        <td>{selectedUser.employerName}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Employed Since:</strong></td>
+                                        <td>{selectedUser.employedSince}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Cell Phone:</strong></td>
+                                        <td>{selectedUser.cellPhone}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Residence Phone:</strong></td>
+                                        <td>{selectedUser.residencePhone}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Residence Address:</strong></td>
+                                        <td>{selectedUser.residenceAddress}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Office Phone:</strong></td>
+                                        <td>{selectedUser.officePhone}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Office Address:</strong></td>
+                                        <td>{selectedUser.officeAddress}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Bank Account Number:</strong></td>
+                                        <td>{selectedUser.bankAccountNumber}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Bank Name:</strong></td>
+                                        <td>{selectedUser.bankName}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Title of Account:</strong></td>
+                                        <td>{selectedUser.titleOfAccount}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Active:</strong></td>
+                                        <td>{selectedUser.active ? 'Yes' : 'No'}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Created At:</strong></td>
+                                        <td>{selectedUser.createdAt}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Updated At:</strong></td>
+                                        <td>{selectedUser.updatedAt}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </ModalBody>
                 <ModalFooter>
-                    <Button color="primary" onClick={handleUpdateChild}>Update</Button>
-                    <Button color="secondary" onClick={toggleEditModal}>Cancel</Button>
+                    <Button color="secondary" onClick={toggleViewModal}>Close</Button>
                 </ModalFooter>
             </Modal>
 
-
-            <Modal isOpen={modal} toggle={toggleModal} size="lg">
-                <ModalHeader toggle={toggleModal}>Add Child Details</ModalHeader>
-                <ModalBody>
-                    {/* Add child details form goes here */}
-                    <Form>
-                    <Row form>
-                        <Col md={6}>
-                            <FormGroup>
-                                <label htmlFor="input-name" className="form-control-label">Name</label>
-                                <InputGroup className="input-group-alternative">
-                                    <InputGroupAddon addonType="prepend">
-                                        <InputGroupText>
-                                            <i className="ni ni-single-02" />
-                                        </InputGroupText>
-                                    </InputGroupAddon>
-                                    <Input type="text" id="input-name" name="name" placeholder="Name" onChange={handleChange} required />
-                                </InputGroup>
-                            </FormGroup>
-                        </Col>
-                        <Col md={6}>
-                            <FormGroup>
-                                <label htmlFor="input-cnic" className="form-control-label">Form B / CNIC</label>
-                                <InputGroup className="input-group-alternative">
-                                    <InputGroupAddon addonType="prepend">
-                                        <InputGroupText>
-                                            <i className="ni ni-credit-card" />
-                                        </InputGroupText>
-                                    </InputGroupAddon>
-                                    <Input type="text" id="input-cnic" name="cnic" placeholder="Form B / CNIC" onChange={handleChange} required />
-                                </InputGroup>
-                            </FormGroup>
-                            </Col>
-                        </Row>
-                        <Row form>
-                        <Col md={6}>
-                            <FormGroup>
-                                <label htmlFor="input-institution" className="form-control-label">Institution Name</label>
-                                <InputGroup className="input-group-alternative">
-                                    <InputGroupAddon addonType="prepend">
-                                        <InputGroupText>
-                                            <i className="ni ni-building" />
-                                        </InputGroupText>
-                                    </InputGroupAddon>
-                                    <Input type="text" id="input-institution" name="institutionName" placeholder="Institution Name" onChange={handleChange} required />
-                                </InputGroup>
-                            </FormGroup>
-                        </Col>
-                        <Col md={6}>
-                            <FormGroup>
-                                <label htmlFor="input-course" className="form-control-label">Course</label>
-                                <InputGroup className="input-group-alternative">
-                                    <InputGroupAddon addonType="prepend">
-                                        <InputGroupText>
-                                            <i className="ni ni-books" />
-                                        </InputGroupText>
-                                    </InputGroupAddon>
-                                    <Input type="text" id="input-course" name="course" placeholder="Course" onChange={handleChange} required />
-                                </InputGroup>
-                            </FormGroup>
-                            </Col>
-                        </Row>
-                        <Row form>
-                        <Col md={6}>
-                            <FormGroup>
-                                <label htmlFor="input-class" className="form-control-label">Class</label>
-                                <InputGroup className="input-group-alternative">
-                                    <InputGroupAddon addonType="prepend">
-                                        <InputGroupText>
-                                            <i className="ni ni-hat-3" />
-                                        </InputGroupText>
-                                    </InputGroupAddon>
-                                    <Input type="text" id="input-class" name="class" placeholder="Class" onChange={handleChange} required />
-                                </InputGroup>
-                            </FormGroup>
-                        </Col>
-                        <Col md={6}>
-                            <FormGroup>
-                                <label htmlFor="input-semester" className="form-control-label">Semester</label>
-                                <InputGroup className="input-group-alternative">
-                                    <InputGroupAddon addonType="prepend">
-                                        <InputGroupText>
-                                            <i className="ni ni-calendar-grid-58" />
-                                        </InputGroupText>
-                                    </InputGroupAddon>
-                                    <Input type="text" id="input-semester" name="semester" placeholder="Semester" onChange={handleChange} required />
-                                </InputGroup>
-                            </FormGroup>
-                            </Col>
-                        </Row>
-
-                        <Row form>
-                            <Col md={6}>
-                                <FormGroup>
-                                    <label htmlFor="input-year" className="form-control-label">Year</label>
-                                    <InputGroup className="input-group-alternative">
-                                        <InputGroupAddon addonType="prepend">
-                                            <InputGroupText>
-                                                <i className="ni ni-calendar-grid-58" />
-                                            </InputGroupText>
-                                        </InputGroupAddon>
-                                        <Input type="text" id="input-year" name="year" placeholder="Year" onChange={handleChange} required />
-                                    </InputGroup>
-                                </FormGroup>
-                            </Col>
-                            <Col md={6}>
-                                <FormGroup>
-                                    <label htmlFor="input-rollnumber" className="form-control-label">Roll Number</label>
-                                    <InputGroup className="input-group-alternative">
-                                        <InputGroupAddon addonType="prepend">
-                                            <InputGroupText>
-                                                <i className="ni ni-key-25" />
-                                            </InputGroupText>
-                                        </InputGroupAddon>
-                                        <Input type="text" id="input-rollnumber" name="rollNumber" placeholder="Roll Number" onChange={handleChange} required />
-                                    </InputGroup>
-                                </FormGroup>
-                            </Col>
-                        </Row>
-                        <Row form>
-                            <Col md={6}>
-                                <FormGroup>
-                                    <label htmlFor="input-fee-frequency" className="form-control-label">Fee Frequency</label>
-                                    <InputGroup className="input-group-alternative">
-                                        <InputGroupAddon addonType="prepend">
-                                            <InputGroupText>
-                                                <i className="ni ni-money-coins" />
-                                            </InputGroupText>
-                                        </InputGroupAddon>
-                                        <Input type="text" id="input-fee-frequency" name="feeFrequency" placeholder="Fee Frequency" onChange={handleChange} required />
-                                    </InputGroup>
-                                </FormGroup>
-                            </Col>
-                            <Col md={6}>
-                                <FormGroup>
-                                    <label htmlFor="input-fees-per-m-q-y" className="form-control-label">Fees per M/Q/Y</label>
-                                    <InputGroup className="input-group-alternative">
-                                        <InputGroupAddon addonType="prepend">
-                                            <InputGroupText>
-                                                <i className="ni ni-money-coins" />
-                                            </InputGroupText>
-                                        </InputGroupAddon>
-                                        <Input type="text" id="input-fees-per-m-q-y" name="feesPerMQY" placeholder="Fees per M/Q/Y" onChange={handleChange} required />
-                                    </InputGroup>
-                                </FormGroup>
-                            </Col>
-                        </Row>
-                        <Row form>
-                            <Col md={6}>
-                                <FormGroup>
-                                    <label htmlFor="input-remaining-time" className="form-control-label">Remaining Time to Completion (yrs)</label>
-                                    <InputGroup className="input-group-alternative">
-                                        <InputGroupAddon addonType="prepend">
-                                            <InputGroupText>
-                                                <i className="ni ni-time-alarm" />
-                                            </InputGroupText>
-                                        </InputGroupAddon>
-                                        <Input type="text" id="input-remaining-time" name="remainingTime" placeholder="Remaining Time to Completion (yrs)" onChange={handleChange} required />
-                                    </InputGroup>
-                                </FormGroup>
-                            </Col>
-                            <Col md={6}>
-                                <FormGroup>
-                                    <label htmlFor="input-total-outstanding-fees" className="form-control-label">Total Outstanding Fees in PRS</label>
-                                    <InputGroup className="input-group-alternative">
-                                        <InputGroupAddon addonType="prepend">
-                                            <InputGroupText>
-                                                <i className="ni ni-money-coins" />
-                                            </InputGroupText>
-                                        </InputGroupAddon>
-                                        <Input type="text" id="input-total-outstanding-fees" name="totalOutstandingFees" placeholder="Total Outstanding Fees in PRS" value={formData.totalOutstandingFees} readOnly />
-                                    </InputGroup>
-                                </FormGroup>
-                            </Col>
-                        </Row>
-                    </Form>
-                </ModalBody>
-                <ModalFooter>
-                    <Button color="primary" onClick={handleAddChild}>Add</Button>{' '}
-                    <Button color="secondary" onClick={toggleModal}>Cancel</Button>
-                </ModalFooter>
-            </Modal>
 
         </>
     );

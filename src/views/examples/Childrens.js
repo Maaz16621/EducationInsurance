@@ -259,7 +259,7 @@ const Children = () => {
 
             <UserHeader />
 
-            <Container className="mt--7 mb-3" fluid>
+            <Container className="mt--7 mb-3" fluid style={{ zIndex: 0 }}>
                 <Row className="justify-content-center">
                     <Col xl="12">
                         <Card className="bg-secondary shadow">

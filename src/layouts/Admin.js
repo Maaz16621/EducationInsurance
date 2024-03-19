@@ -28,7 +28,7 @@ import { fetchLogoUrl } from "../logoFetcher";
 
 import routes from "routes.js";
 
-const Admin = (props) => {
+const UserPanel = (props) => {
   
   const mainContent = React.useRef(null);
   const location = useLocation();
@@ -48,7 +48,7 @@ const Admin = (props) => {
     }, []);
   const getRoutes = (routes) => {
     return routes.map((prop, key) => {
-      if (prop.layout === "/admin") {
+      if (prop.layout === "/userpanel") {
         return (
           <Route path={prop.path} element={prop.component} key={key} exact />
         );
@@ -97,7 +97,7 @@ const Admin = (props) => {
         />
         <Routes>
           {getRoutes(routes)}
-          <Route path="*" element={<Navigate to="/admin/index" replace />} />
+          <Route path="*" element={<Navigate to="/userpanel/index" replace />} />
         </Routes>
         <Container fluid>
          
@@ -107,4 +107,4 @@ const Admin = (props) => {
   );
 };
 
-export default Admin;
+export default UserPanel;

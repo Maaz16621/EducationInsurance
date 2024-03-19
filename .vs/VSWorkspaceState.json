@@ -1,16 +1,16 @@
 {
   "ExpandedNodes": [
     "",
-    "\\api",
+    "\\admin",
+    "\\admin\\src",
+    "\\admin\\src\\views",
+    "\\admin\\src\\views\\examples",
     "\\src",
-    "\\src\\components",
-    "\\src\\components\\Navbars",
-    "\\src\\components\\Sidebar",
     "\\src\\layouts",
     "\\src\\variables",
     "\\src\\views",
     "\\src\\views\\examples"
   ],
-  "SelectedNode": "\\src\\views\\examples\\Settings.js",
+  "SelectedNode": "\\admin\\src\\views\\examples",
   "PreviewInSolutionExplorer": false
 }
